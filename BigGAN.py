@@ -51,6 +51,8 @@ def G_arch(ch=64, attention='64', ksize='333333', dilation='111111'):
 
   return arch
 
+
+
 class Generator(nn.Module):
   def __init__(self, G_ch=64, dim_z=128, bottom_width=4, resolution=128,
                G_kernel_size=3, G_attn='64', n_classes=1000,
@@ -251,6 +253,39 @@ class Generator(nn.Module):
     return torch.tanh(self.output_layer(h))
 
 
+class Generator_Resize(Generator):
+    def __init__(self, G_ch=64, dim_z=128, bottom_width=4, resolution=128,
+                 G_kernel_size=3, G_attn='64', n_classes=1000,
+                 num_G_SVs=1, num_G_SV_itrs=1,
+                 G_shared=True, shared_dim=0, hier=False,
+                 cross_replica=False, mybn=False,
+                 G_activation=nn.ReLU(inplace=False),
+                 G_lr=5e-5, G_B1=0.0, G_B2=0.999, adam_eps=1e-8,
+                 BN_eps=1e-5, SN_eps=1e-12, G_mixed_precision=False, G_fp16=False,
+                 G_init='ortho', skip_init=False, no_optim=False,
+                 G_param='SN', norm_style='bn',
+                 **kwargs):
+        super(Generator_Resize, self).__init__(G_ch , dim_z , bottom_width , 128 ,
+               G_kernel_size , G_attn , 1000,
+               num_G_SVs , num_G_SV_itrs ,
+               G_shared , shared_dim , hier ,
+               cross_replica , mybn ,
+               G_activation ,
+               G_lr , G_B1 , G_B2 , adam_eps ,
+               BN_eps , SN_eps , G_mixed_precision , G_fp16 ,
+               G_init , skip_init , no_optim ,
+               G_param , norm_style)
+        self.resolution=resolution
+        self.n_classes=n_classes
+
+
+
+    def forward(self, z, y):
+        # y2=torch.zeros(1000).to(y.device)
+        # y2[:,self.n_classes]=y
+        x_fake=super(Generator_Resize, self).forward(z,y )
+        return F.interpolate(x_fake,size=[self.resolution,self.resolution])
+
 # Discriminator architecture, same paradigm as G's above
 def D_arch(ch=64, attention='64',ksize='333333', dilation='111111'):
   arch = {}
@@ -280,8 +315,12 @@ def D_arch(ch=64, attention='64',ksize='333333', dilation='111111'):
                               for i in range(2,6)}}
   return arch
 
-class Discriminator(nn.Module):
 
+
+
+
+
+class Discriminator(nn.Module):
   def __init__(self, D_ch=64, D_wide=True, resolution=128,
                D_kernel_size=3, D_attn='64', n_classes=1000,
                num_D_SVs=1, num_D_SV_itrs=1, D_activation=nn.ReLU(inplace=False),
@@ -403,6 +442,28 @@ class Discriminator(nn.Module):
     out = out + torch.sum(self.embed(y) * h, 1, keepdim=True)
     return out
 
+class Discriminator_Resize(Discriminator):
+    def __init__(self, D_ch=64, D_wide=True, resolution=128,
+                 D_kernel_size=3, D_attn='64', n_classes=1000,
+                 num_D_SVs=1, num_D_SV_itrs=1, D_activation=nn.ReLU(inplace=False),
+                 D_lr=2e-4, D_B1=0.0, D_B2=0.999, adam_eps=1e-8,
+                 SN_eps=1e-12, output_dim=1, D_mixed_precision=False, D_fp16=False,
+                 D_init='ortho', skip_init=False, D_param='SN', **kwargs):
+        super(Discriminator_Resize, self).__init__(D_ch,D_wide,128,D_kernel_size,D_attn,1000,num_D_SVs,num_D_SV_itrs,
+                                         D_activation,D_lr,D_B1,D_B2,adam_eps,SN_eps,output_dim,D_mixed_precision,
+                                         D_fp16,D_init,skip_init,D_param)
+        self.resolution=resolution
+        self.n_classes=n_classes
+
+
+
+
+
+    def forward(self, x, y=None):
+        x=F.interpolate(x,size=[128,128])
+        return super(Discriminator_Resize, self).forward(x,y)
+
+
 # Parallelized G_D to minimize cross-gpu communication
 # Without this, Generator outputs would get all-gathered and then rebroadcast.
 class G_D(nn.Module):
@@ -437,6 +498,8 @@ class G_D(nn.Module):
     # If real data is provided, concatenate it with the Generator's output
     # along the batch dimension for improved efficiency.
     else:
+      if x is not None:
+        x=F.interpolate(x,size=G_z.shape[-2:])
       D_input = torch.cat([G_z, x], 0) if x is not None else G_z
       D_class = torch.cat([gy, dy], 0) if dy is not None else gy
       # Get Discriminator output
