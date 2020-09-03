@@ -66,13 +66,13 @@ def run(config):
 
   ##force n_class , resolution to 1000, 128
   config['actual_n_classes']=config['n_classes']
-  config['n_classes']=1000
+
   config['actual_resolution'] = config['resolution']
-  config['resolution']=128
+
 
   # Next, build the model
-  G = model.Generator_Resize(**config).to(device)
-  D = model.Discriminator_Resize(**config).to(device)
+  G = model.Generator(**config).to(device)
+  D = model.Discriminator(**config).to(device)
   
    # If using EMA, prepare it
   if config['ema']:
