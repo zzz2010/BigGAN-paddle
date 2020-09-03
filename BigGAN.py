@@ -2,12 +2,12 @@ import numpy as np
 import math
 import functools
 
-import torch
-import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn import Parameter as P
+import paddorch as torch
+import paddorch.nn as nn
+from paddorch.nn import init
+import paddorch.optim as optim
+import paddorch.nn.functional as F
+from paddorch.nn import Parameter as P
 
 import layers
 from sync_batchnorm import SynchronizedBatchNorm2d as SyncBatchNorm2d
@@ -211,8 +211,8 @@ class Generator(nn.Module):
   def init_weights(self):
     self.param_count = 0
     for module in self.modules():
-      if (isinstance(module, nn.Conv2d) 
-          or isinstance(module, nn.Linear) 
+      if (isinstance(module, nn.Conv2d)
+          or isinstance(module, nn.Conv2d)
           or isinstance(module, nn.Embedding)):
         if self.init == 'ortho':
           init.orthogonal_(module.weight)
@@ -222,7 +222,7 @@ class Generator(nn.Module):
           init.xavier_uniform_(module.weight)
         else:
           print('Init style not recognized...')
-        self.param_count += sum([p.data.nelement() for p in module.parameters()])
+        self.param_count += sum([np.prod(p.shape) for p in module.parameters()])
     print('Param count for G''s initialized parameters: %d' % self.param_count)
 
   # Note on this forward function: we pass in a y vector which has
@@ -424,7 +424,7 @@ class Discriminator(nn.Module):
           init.xavier_uniform_(module.weight)
         else:
           print('Init style not recognized...')
-        self.param_count += sum([p.data.nelement() for p in module.parameters()])
+        self.param_count += sum([np.prod(p.shape) for p in module.parameters()])
     print('Param count for D''s initialized parameters: %d' % self.param_count)
 
   def forward(self, x, y=None):

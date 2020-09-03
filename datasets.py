@@ -8,11 +8,10 @@ from PIL import Image
 import numpy as np
 from tqdm import tqdm, trange
 
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-from torchvision.datasets.utils import download_url, check_integrity
-import torch.utils.data as data
-from torch.utils.data import DataLoader
+import paddorch.vision.datasets as dset
+
+import paddorch.utils.data as data
+
          
 IMG_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.ppm', '.bmp', '.pgm']
 
@@ -240,7 +239,7 @@ class ILSVRC_HDF5(data.Dataset):
       # return len(self.f['imgs'])
 
 import pickle
-class CIFAR10(dset.CIFAR10):
+class CIFAR10(dset.Dataset):
 
   def __init__(self, root, train=True,
            transform=None, target_transform=None,
@@ -252,16 +251,18 @@ class CIFAR10(dset.CIFAR10):
     self.train = train  # training set or test set
     self.val_split = val_split
 
-    if download:
-      self.download()
+    # if download:
+    #   self.download()
 
-    if not self._check_integrity():
-      raise RuntimeError('Dataset not found or corrupted.' +
-                           ' You can use download=True to download it')
+    # if not self._check_integrity():
+    #   raise RuntimeError('Dataset not found or corrupted.' +
+    #                        ' You can use download=True to download it')
 
     # now load the picked numpy arrays    
     self.data = []
     self.labels= []
+    self.base_folder="cifar-10-batches-py"
+    self.train_list=[["data_batch_"+str(i+1)] for i in range(5)]
     for fentry in self.train_list:
       f = fentry[0]
       file = os.path.join(self.root, self.base_folder, f)

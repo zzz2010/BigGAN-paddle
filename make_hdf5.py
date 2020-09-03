@@ -1,19 +1,12 @@
 """ Convert dataset to HDF5
     This script preprocesses a dataset and saves it (images and labels) to 
     an HDF5 file for improved I/O. """
-import os
-import sys
+
 from argparse import ArgumentParser
 from tqdm import tqdm, trange
 import h5py as h5
 
-import numpy as np
-import torch
-import torchvision.datasets as dset
-import torchvision.transforms as transforms
-from torchvision.utils import save_image
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+
 
 import utils
 

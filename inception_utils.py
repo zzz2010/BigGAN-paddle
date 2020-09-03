@@ -15,11 +15,11 @@ import numpy as np
 from scipy import linalg # For numpy FID
 import time
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn import Parameter as P
-from torchvision.models.inception import inception_v3
+import paddorch as torch
+import paddorch.nn as nn
+import paddorch.nn.functional as F
+from paddorch.nn import Parameter as P
+from paddorch.vision.models.inception import inception_v3
 
 
 # Module that wraps the inception network to enable use with dataparallel and
@@ -259,7 +259,7 @@ def accumulate_inception_activations(sample, net, num_inception_images=50000):
 
 # Load and wrap the Inception model
 def load_inception_net(parallel=False):
-  inception_model = inception_v3(pretrained=True, transform_input=False)
+  inception_model = inception_v3(pretrained_fn="./weights/inception_v3_pretrained.pdparams")
   inception_model = WrapInception(inception_model.eval()).cuda()
   if parallel:
     print('Parallelizing Inception module...')

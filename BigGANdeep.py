@@ -2,12 +2,12 @@ import numpy as np
 import math
 import functools
 
-import torch
-import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn import Parameter as P
+import paddorch as torch
+import paddorch.nn as nn
+from paddorch.nn import init
+import paddorch.optim as optim
+import paddorch.nn.functional as F
+from paddorch.nn import Parameter as P
 
 import layers
 from sync_batchnorm import SynchronizedBatchNorm2d as SyncBatchNorm2d

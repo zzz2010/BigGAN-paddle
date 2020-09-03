@@ -1,5 +1,5 @@
-import torch
-import torch.nn.functional as F
+import paddorch as torch
+import paddorch.nn.functional as F
 
 # DCGAN loss
 def loss_dcgan_dis(dis_fake, dis_real):

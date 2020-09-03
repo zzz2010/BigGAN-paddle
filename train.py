@@ -14,13 +14,9 @@ import numpy as np
 from tqdm import tqdm, trange
 
 
-import torch
-import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn import Parameter as P
-import torchvision
+import paddorch as torch
+import paddorch.nn as nn
+
 
 # Import my stuff
 import inception_utils
@@ -55,8 +51,7 @@ def run(config):
   # Prepare root folders if necessary
   utils.prepare_root(config)
 
-  # Setup cudnn.benchmark for free speed
-  torch.backends.cudnn.benchmark = True
+
 
   # Import the model--this line allows us to dynamically select different files.
   model = __import__(config['model'])
@@ -97,7 +92,7 @@ def run(config):
   print(G)
   print(D)
   print('Number of params in G: {} D: {}'.format(
-    *[sum([p.data.nelement() for p in net.parameters()]) for net in [G,D]]))
+    *[sum([np.prod(p.shape) for p in net.parameters()]) for net in [G,D]]))
   # Prepare state dict, which holds things like epoch # and itr #
   state_dict = {'itr': 0, 'epoch': 0, 'save_num': 0, 'save_best_num': 0,
                 'best_IS': 0, 'best_FID': 999999, 'config': config}
@@ -230,4 +225,9 @@ def main():
   run(config)
 
 if __name__ == '__main__':
-  main()
+  from paddle import fluid
+  from paddorch.vision.models.inception import InceptionV3
+  place=fluid.CUDAPlace(0)
+  with fluid.dygraph.guard(place=place):
+    inception =  InceptionV3("/home/zzz/deeplearning/starganv2_paddle/metrics/inception_v3_pretrained.pdparams")
+    main()

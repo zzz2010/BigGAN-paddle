@@ -2,12 +2,12 @@
     This file contains various layers for the BigGAN models.
 '''
 import numpy as np
-import torch
-import torch.nn as nn
-from torch.nn import init
-import torch.optim as optim
-import torch.nn.functional as F
-from torch.nn import Parameter as P
+import paddorch as torch
+import paddorch.nn as nn
+from paddorch.nn import init
+import paddorch.optim as optim
+import paddorch.nn.functional as F
+from paddorch.nn import Parameter as P
 
 from sync_batchnorm import SynchronizedBatchNorm2d as SyncBN2d
 
@@ -67,21 +67,22 @@ class SN(object):
     self.transpose = transpose
     # Epsilon value for avoiding divide-by-0
     self.eps = eps
+    self.register_buffer=dict()
     # Register a singular vector for each sv
     for i in range(self.num_svs):
-      self.register_buffer('u%d' % i, torch.randn(1, num_outputs))
-      self.register_buffer('sv%d' % i, torch.ones(1))
+      self.register_buffer['u%d' % i]= torch.randn(1, num_outputs)
+      self.register_buffer['sv%d' % i]= torch.ones(1)
   
   # Singular vectors (u side)
   @property
   def u(self):
-    return [getattr(self, 'u%d' % i) for i in range(self.num_svs)]
+    return [self.register_buffer['u%d' % i]  for i in range(self.num_svs)]
 
   # Singular values; 
   # note that these buffers are just for logging and are not used in training. 
   @property
   def sv(self):
-   return [getattr(self, 'sv%d' % i) for i in range(self.num_svs)]
+   return [self.register_buffer['sv%d' % i] for i in range(self.num_svs)]
    
   # Compute the spectrally-normalized weight
   def W_(self):
@@ -104,8 +105,8 @@ class SNConv2d(nn.Conv2d, SN):
   def __init__(self, in_channels, out_channels, kernel_size, stride=1,
              padding=0, dilation=1, groups=1, bias=True, 
              num_svs=1, num_itrs=1, eps=1e-12):
-    nn.Conv2d.__init__(self, in_channels, out_channels, kernel_size, stride, 
-                     padding, dilation, groups, bias)
+    nn.Conv2d.__init__(self, in_channels, out_channels, kernel_size, stride,
+                       padding, dilation, groups, bias)
     SN.__init__(self, num_svs, num_itrs, out_channels, eps=eps)    
   def forward(self, x):
     return F.conv2d(x, self.W_(), self.bias, self.stride, 
@@ -219,9 +220,9 @@ class myBN(nn.Module):
     # Momentum
     self.momentum = momentum
     # Register buffers
-    self.register_buffer('stored_mean', torch.zeros(num_channels))
-    self.register_buffer('stored_var',  torch.ones(num_channels))
-    self.register_buffer('accumulation_counter', torch.zeros(1))
+    self.register_buffer['stored_mean']= torch.zeros(num_channels)
+    self.register_buffer['stored_var']=  torch.ones(num_channels)
+    self.register_buffer['accumulation_counter']= torch.zeros(1)
     # Accumulate running means and vars
     self.accumulate_standing = False
     
@@ -299,8 +300,8 @@ class ccbn(nn.Module):
     elif self.mybn:
       self.bn = myBN(output_size, self.eps, self.momentum)
     elif self.norm_style in ['bn', 'in']:
-      self.register_buffer('stored_mean', torch.zeros(output_size))
-      self.register_buffer('stored_var',  torch.ones(output_size)) 
+      self.register_buffer['stored_mean']=torch.zeros(output_size)
+      self.register_buffer['stored_var']=torch.ones(output_size)
     
     
   def forward(self, x, y):
@@ -336,8 +337,8 @@ class bn(nn.Module):
     super(bn, self).__init__()
     self.output_size= output_size
     # Prepare gain and bias layers
-    self.gain = P(torch.ones(output_size), requires_grad=True)
-    self.bias = P(torch.zeros(output_size), requires_grad=True)
+    self.gain = torch.nn.Parameter(output_size,1.0)
+    self.bias = torch.nn.Parameter(output_size,0.0)
     # epsilon to avoid dividing by 0
     self.eps = eps
     # Momentum
@@ -353,8 +354,8 @@ class bn(nn.Module):
       self.bn = myBN(output_size, self.eps, self.momentum)
      # Register buffers if neither of the above
     else:     
-      self.register_buffer('stored_mean', torch.zeros(output_size))
-      self.register_buffer('stored_var',  torch.ones(output_size))
+      self.register_buffer['stored_mean']= torch.zeros(output_size)
+      self.register_buffer['stored_var']= torch.ones(output_size)
     
   def forward(self, x, y=None):
     if self.cross_replica or self.mybn:
@@ -374,7 +375,7 @@ class bn(nn.Module):
 # be preselected)
 class GBlock(nn.Module):
   def __init__(self, in_channels, out_channels,
-               which_conv=nn.Conv2d, which_bn=bn, activation=None, 
+               which_conv=nn.Conv2d, which_bn=bn, activation=None,
                upsample=None):
     super(GBlock, self).__init__()
     

@@ -32,8 +32,8 @@ class BatchNorm2dReimpl(nn.Module):
         self.momentum = momentum
         self.weight = nn.Parameter(torch.empty(num_features))
         self.bias = nn.Parameter(torch.empty(num_features))
-        self.register_buffer('running_mean', torch.zeros(num_features))
-        self.register_buffer('running_var', torch.ones(num_features))
+        self.register_buffer['running_mean', torch.zeros(num_features))
+        self.register_buffer['running_var', torch.ones(num_features))
         self.reset_parameters()
 
     def reset_running_stats(self):

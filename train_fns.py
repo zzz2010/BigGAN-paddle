@@ -1,9 +1,9 @@
 ''' train_fns.py
 Functions for the main loop of training different conditional image models
 '''
-import torch
-import torch.nn as nn
-import torchvision
+import paddorch as torch
+import paddorch.nn as nn
+import paddorch.vision as torchvision
 import os
 
 import utils

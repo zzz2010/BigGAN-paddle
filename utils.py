@@ -18,12 +18,12 @@ import pickle
 from argparse import ArgumentParser
 import animal_hash
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-import torchvision
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+import paddorch as torch
+import paddorch.nn as nn
+import paddorch.nn.functional as F
+import paddorch.vision as torchvision
+import paddorch.vision.transforms as transforms
+from paddorch.utils.data import DataLoader
 
 import datasets as dset
 
@@ -478,7 +478,7 @@ class RandomCropLongEdge(object):
     
 # multi-epoch Dataset sampler to avoid memory leakage and enable resumption of
 # training from the same sample regardless of if we stop mid-epoch
-class MultiEpochSampler(torch.utils.data.Sampler):
+class MultiEpochSampler(torch.utils.data.BatchSampler):
   r"""Samples elements randomly over multiple epochs
 
   Arguments:
@@ -586,7 +586,7 @@ def get_data_loaders(dataset, data_root=None, augment=False, batch_size=64,
 # Utility file to seed rngs
 def seed_rng(seed):
   torch.manual_seed(seed)
-  torch.cuda.manual_seed(seed)
+
   np.random.seed(seed)
 
 
@@ -624,7 +624,8 @@ class ema(object):
     print('Initializing EMA parameters to be source parameters...')
     with torch.no_grad():
       for key in self.source_dict:
-        self.target_dict[key].data.copy_(self.source_dict[key].data)
+        torch.copy(self.source_dict[key],self.target_dict[key])
+
         # target_dict[key].data = source_dict[key].data # Doesn't work!
 
   def update(self, itr=None):

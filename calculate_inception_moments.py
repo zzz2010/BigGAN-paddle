@@ -7,9 +7,9 @@
  estimated as it is label-ordered. By default, the data is not shuffled
  so as to reduce non-determinism. '''
 import numpy as np
-import torch
+import paddorch as torch
 import torch.nn as nn
-import torch.nn.functional as F
+import paddorch.nn.functional as F
 
 import utils
 import inception_utils
