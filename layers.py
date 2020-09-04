@@ -27,17 +27,18 @@ def gram_schmidt(x, ys):
 # Apply num_itrs steps of the power method to estimate top N singular values.
 def power_iteration(W, u_, update=True, eps=1e-12):
   # Lists holding singular vectors and values
+  Wt=torch.Tensor(W).t()
   us, vs, svs = [], [], []
   for i, u in enumerate(u_):
     # Run one step of the power iteration
     with torch.no_grad():
-      v = torch.matmul(u, W)
+      v = torch.matmul(u, Wt)
       # Run Gram-Schmidt to subtract components of all other singular vectors
       v = F.normalize(gram_schmidt(v, vs), eps=eps)
       # Add to the list
       vs += [v]
       # Update the other singular vector
-      u = torch.matmul(v, W.t())
+      u = torch.matmul(v, W )
       # Run Gram-Schmidt to subtract components of all other singular vectors
       u = F.normalize(gram_schmidt(u, us), eps=eps)
       # Add to the list
@@ -45,7 +46,7 @@ def power_iteration(W, u_, update=True, eps=1e-12):
       if update:
         u_[i][:] = u
     # Compute this singular value and add it to the list
-    svs += [torch.squeeze(torch.matmul(torch.matmul(v, W.t()), u.t()))]
+    svs += [torch.squeeze(torch.matmul(torch.matmul(v, W ), u.t()))]
     #svs += [torch.sum(F.linear(u, W.transpose(0, 1)) * v)]
   return svs, us, vs
 
@@ -86,7 +87,7 @@ class SN(object):
    
   # Compute the spectrally-normalized weight
   def W_(self):
-    W_mat = self.weight.view(self.weight.size(0), -1)
+    W_mat = torch.Tensor(self.weight).view(self.weight.shape[0], -1)
     if self.transpose:
       W_mat = W_mat.t()
     # Apply num_itrs power iterations

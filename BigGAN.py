@@ -239,7 +239,7 @@ class Generator(nn.Module):
       ys = [y] * len(self.blocks)
       
     # First linear layer
-    h = self.linear(z)
+    h = torch.Tensor(self.linear(z))
     # Reshape
     h = h.view(h.size(0), -1, self.bottom_width, self.bottom_width)
     
@@ -475,14 +475,14 @@ class G_D(nn.Module):
   def forward(self, z, gy, x=None, dy=None, train_G=False, return_G_z=False,
               split_D=False):              
     # If training G, enable grad tape
-    with torch.set_grad_enabled(train_G):
+    if train_G:
+        self.G.train()
+    else:
+        self.G.eval()
       # Get Generator output given noise
-      G_z = self.G(z, self.G.shared(gy))
+    G_z = self.G(z, self.G.shared(gy))
       # Cast as necessary
-      if self.G.fp16 and not self.D.fp16:
-        G_z = G_z.float()
-      if self.D.fp16 and not self.G.fp16:
-        G_z = G_z.half()
+
     # Split_D means to run D once with real data and once with fake,
     # rather than concatenating along the batch dimension.
     if split_D:

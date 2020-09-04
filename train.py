@@ -176,15 +176,13 @@ def run(config):
       # For D, which typically doesn't have BN, this shouldn't matter much.
       G.train()
       D.train()
+      x, y=x[0], y.astype(np.int64) ## special handling for paddle dataloader
       if config['ema']:
         G_ema.train()
-      if config['D_fp16']:
-        x, y = x.to(device).half(), y.to(device)
-      else:
-        x, y = x.to(device), y.to(device)
+
       metrics = train(x, y)
       train_log.log(itr=int(state_dict['itr']), **metrics)
-      
+
       # Every sv_log_interval, log singular values
       if (config['sv_log_interval'] > 0) and (not (state_dict['itr'] % config['sv_log_interval'])):
         train_log.log(itr=int(state_dict['itr']), 
@@ -229,5 +227,4 @@ if __name__ == '__main__':
   from paddorch.vision.models.inception import InceptionV3
   place=fluid.CUDAPlace(0)
   with fluid.dygraph.guard(place=place):
-    inception =  InceptionV3("/home/zzz/deeplearning/starganv2_paddle/metrics/inception_v3_pretrained.pdparams")
     main()

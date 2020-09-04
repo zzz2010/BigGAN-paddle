@@ -7,7 +7,7 @@ import sys
 from PIL import Image
 import numpy as np
 from tqdm import tqdm, trange
-
+from paddorch.vision.datasets import cv2_loader
 import paddorch.vision.datasets as dset
 
 import paddorch.utils.data as data
@@ -54,28 +54,16 @@ def make_dataset(dir, class_to_idx):
   return images
 
 
-def pil_loader(path):
-    # open path as file to avoid ResourceWarning (https://github.com/python-pillow/Pillow/issues/835)
-  with open(path, 'rb') as f:
-    img = Image.open(f)
-    return img.convert('RGB')
 
 
 def accimage_loader(path):
-  import accimage
-  try:
-    return accimage.Image(path)
-  except IOError:
-    # Potentially a decoding problem, fall back to PIL.Image
-    return pil_loader(path)
+
+    return cv2_loader(path)
 
 
 def default_loader(path):
-  from torchvision import get_image_backend
-  if get_image_backend() == 'accimage':
-    return accimage_loader(path)
-  else:
-    return pil_loader(path)
+
+    return cv2_loader(path)
 
 
 class ImageFolder(data.Dataset):
@@ -160,7 +148,7 @@ class ImageFolder(data.Dataset):
       target = self.target_transform(target)
     
     # print(img.size(), target)
-    return img, int(target)
+    return [img, int(target)]
 
   def __len__(self):
     return len(self.imgs)
@@ -334,8 +322,8 @@ class CIFAR10(dset.Dataset):
     img, target = self.data[index], self.labels[index]
 
     # doing this so that it is consistent with all other datasets
-    # to return a PIL Image
-    img = Image.fromarray(img)
+    # # to return a PIL Image
+    # img = Image.fromarray(img)
 
     if self.transform is not None:
       img = self.transform(img)
@@ -343,7 +331,7 @@ class CIFAR10(dset.Dataset):
     if self.target_transform is not None:
       target = self.target_transform(target)
 
-    return img, target
+    return [img, target]
       
   def __len__(self):
       return len(self.data)

@@ -1088,14 +1088,14 @@ def prepare_z_y(G_batch_size, dim_z, nclasses, device='cuda',
                 fp16=False,z_var=1.0):
   z_ = Distribution(torch.randn(G_batch_size, dim_z, requires_grad=False))
   z_.init_distribution('normal', mean=0, var=z_var)
-  z_ = z_.to(device,torch.float16 if fp16 else torch.float32)   
+  z_ = z_
   
   if fp16:
     z_ = z_.half()
 
   y_ = Distribution(torch.zeros(G_batch_size, requires_grad=False))
   y_.init_distribution('categorical',num_categories=nclasses)
-  y_ = y_.to(device, torch.int64)
+  y_ = y_
   return z_, y_
 
 

@@ -259,8 +259,9 @@ def accumulate_inception_activations(sample, net, num_inception_images=50000):
 
 # Load and wrap the Inception model
 def load_inception_net(parallel=False):
-  inception_model = inception_v3(pretrained_fn="./weights/inception_v3_pretrained.pdparams")
-  inception_model = WrapInception(inception_model.eval()).cuda()
+  inception_model = inception_v3( )
+  inception_model = WrapInception(inception_model.eval())
+  inception_model.set_dict(torch.load("inception_model.pdparams"))
   if parallel:
     print('Parallelizing Inception module...')
     inception_model = nn.DataParallel(inception_model)
@@ -308,3 +309,16 @@ def prepare_inception_metrics(dataset, parallel, no_fid=False):
     del mu, sigma, pool, logits, labels
     return IS_mean, IS_std, FID
   return get_inception_metrics
+
+if __name__ == '__main__':
+  from paddle import fluid
+  place=fluid.CUDAPlace(0)
+  with fluid.dygraph.guard(place=place):
+    inception_model = inception_v3 ()
+    inception_model = WrapInception(inception_model.eval())
+    import torch as pytorch
+    torch_state_dict=pytorch.load( "inception_model.pth")
+    from paddorch.convert_pretrain_model import load_pytorch_pretrain_model
+
+    load_pytorch_pretrain_model(inception_model,torch_state_dict)
+    torch.save(inception_model.state_dict(),"inception_model.pdparams")
