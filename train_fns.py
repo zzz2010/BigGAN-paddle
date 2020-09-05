@@ -25,12 +25,13 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
     x = torch.split(x, config['batch_size'])
     y = torch.split(y, config['batch_size'])
     counter = 0
-    
+
     # Optionally toggle D and G's "require_grad"
     if config['toggle_grads']:
       utils.toggle_grad(D, True)
       utils.toggle_grad(G, False)
-      
+
+    D_loss_total=0
     for step_index in range(config['num_D_steps']):
       # If accumulating gradients, loop multiple times before an optimizer step
       D.optim.zero_grad()
@@ -45,7 +46,7 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
         # the number of gradient accumulations
         D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake, D_real)
         D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
-        D_loss.backward()
+        D_loss_total+=D_loss
         counter += 1
         
       # Optionally apply ortho reg in D
@@ -53,8 +54,9 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
         # Debug print to indicate we're using ortho reg in D.
         print('using modified ortho reg in D')
         utils.ortho(D, config['D_ortho'])
-      
-      D.optim.step()
+
+      D_loss_total.backward()
+      D.optim.minimize(D_loss_total)
     
     # Optionally toggle "requires_grad"
     if config['toggle_grads']:
@@ -65,12 +67,14 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
     G.optim.zero_grad()
     
     # If accumulating gradients, loop multiple times
+    G_loss_total=0
     for accumulation_index in range(config['num_G_accumulations']):    
       z_.sample_()
       y_.sample_()
       D_fake = GD(z_, y_, train_G=True, split_D=config['split_D'])
       G_loss = losses.generator_loss(D_fake) / float(config['num_G_accumulations'])
-      G_loss.backward()
+      G_loss_total+=G_loss
+
     
     # Optionally apply modified ortho reg in G
     if config['G_ortho'] > 0.0:
@@ -78,15 +82,16 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
       # Don't ortho reg shared, it makes no sense. Really we should blacklist any embeddings for this
       utils.ortho(G, config['G_ortho'], 
                   blacklist=[param for param in G.shared.parameters()])
-    G.optim.step()
+    G_loss_total.backward()
+    G.optim.minimize(G_loss_total)
     
     # If we have an ema, update it, regardless of if we test with it or not
     if config['ema']:
       ema.update(state_dict['itr'])
     
-    out = {'G_loss': float(G_loss.item()), 
-            'D_loss_real': float(D_loss_real.item()),
-            'D_loss_fake': float(D_loss_fake.item())}
+    out = {'G_loss': float(torch.Tensor(G_loss).item()),
+            'D_loss_real': float(torch.Tensor(D_loss_real).item()),
+            'D_loss_fake': float(torch.Tensor(D_loss_fake).item())}
     # Return G's loss and the components of D's loss.
     return out
   return train
@@ -128,7 +133,7 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
   image_filename = '%s/%s/fixed_samples%d.jpg' % (config['samples_root'], 
                                                   experiment_name,
                                                   state_dict['itr'])
-  torchvision.utils.save_image(fixed_Gz.float().cpu(), image_filename,
+  torchvision.utils.save_image(fixed_Gz , image_filename,
                              nrow=int(fixed_Gz.shape[0] **0.5), normalize=True)
   # For now, every time we save, also save sample sheets
   utils.sample_sheet(which_G,

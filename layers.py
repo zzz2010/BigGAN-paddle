@@ -32,21 +32,31 @@ def power_iteration(W, u_, update=True, eps=1e-12):
   for i, u in enumerate(u_):
     # Run one step of the power iteration
     with torch.no_grad():
-      v = torch.matmul(u, Wt)
+      if (W.shape[0]==u.shape[1])  :
+        v = torch.matmul(u, W)
+      else:
+        v = torch.matmul(u, Wt)
       # Run Gram-Schmidt to subtract components of all other singular vectors
       v = F.normalize(gram_schmidt(v, vs), eps=eps)
       # Add to the list
       vs += [v]
       # Update the other singular vector
-      u = torch.matmul(v, W )
+      if (W.shape[0]!=v.shape[1]):
+        u = torch.matmul(v, Wt  )
+      else:
+        u = torch.matmul(v, W)
       # Run Gram-Schmidt to subtract components of all other singular vectors
       u = F.normalize(gram_schmidt(u, us), eps=eps)
       # Add to the list
       us += [u]
       if update:
-        u_[i][:] = u
+        torch.copy(u,u_[i])
+        # u_[i][:] = u
     # Compute this singular value and add it to the list
-    svs += [torch.squeeze(torch.matmul(torch.matmul(v, W ), u.t()))]
+    if (W.shape[0]!=v.shape[1]):
+      svs += [torch.squeeze(torch.matmul(torch.matmul(v, Wt  ), u.t() ))]
+    else:
+      svs += [torch.squeeze(torch.matmul(torch.matmul(v, W), u.t()))]
     #svs += [torch.sum(F.linear(u, W.transpose(0, 1)) * v)]
   return svs, us, vs
 
@@ -97,7 +107,8 @@ class SN(object):
     if self.training:
       with torch.no_grad(): # Make sure to do this in a no_grad() context or you'll get memory leaks!
         for i, sv in enumerate(svs):
-          self.sv[i][:] = sv     
+          torch.copy(sv,self.sv[i])
+          # self.sv[i][:] = sv
     return self.weight / svs[0]
 
 
@@ -108,7 +119,11 @@ class SNConv2d(nn.Conv2d, SN):
              num_svs=1, num_itrs=1, eps=1e-12):
     nn.Conv2d.__init__(self, in_channels, out_channels, kernel_size, stride,
                        padding, dilation, groups, bias)
-    SN.__init__(self, num_svs, num_itrs, out_channels, eps=eps)    
+    SN.__init__(self, num_svs, num_itrs, out_channels, eps=eps)
+    self.stride=stride
+    self.dilation=dilation
+    self.groups=groups
+    self.padding=padding
   def forward(self, x):
     return F.conv2d(x, self.W_(), self.bias, self.stride, 
                     self.padding, self.dilation, self.groups)
@@ -137,7 +152,7 @@ class SNEmbedding(nn.Embedding, SN):
                           sparse, _weight)
     SN.__init__(self, num_svs, num_itrs, num_embeddings, eps=eps)
   def forward(self, x):
-    return F.embedding(x, self.W_())
+    return F.embedding(x ,self.W_())
 
 
 # A non-local block as used in SA-GAN
@@ -301,14 +316,14 @@ class ccbn(nn.Module):
     elif self.mybn:
       self.bn = myBN(output_size, self.eps, self.momentum)
     elif self.norm_style in ['bn', 'in']:
-      self.register_buffer['stored_mean']=torch.zeros(output_size)
-      self.register_buffer['stored_var']=torch.ones(output_size)
+      self.stored_mean=torch.zeros(output_size)
+      self.stored_var=torch.ones(output_size)
     
     
   def forward(self, x, y):
     # Calculate class-conditional gains and biases
-    gain = (1 + self.gain(y)).view(y.size(0), -1, 1, 1)
-    bias = self.bias(y).view(y.size(0), -1, 1, 1)
+    gain = torch.Tensor(1 + self.gain(y)).view(y.size(0), -1, 1, 1)
+    bias = torch.Tensor(self.bias(y)).view(y.size(0), -1, 1, 1)
     # If using my batchnorm
     if self.mybn or self.cross_replica:
       return self.bn(x, gain=gain, bias=bias)
@@ -355,8 +370,8 @@ class bn(nn.Module):
       self.bn = myBN(output_size, self.eps, self.momentum)
      # Register buffers if neither of the above
     else:     
-      self.register_buffer['stored_mean']= torch.zeros(output_size)
-      self.register_buffer['stored_var']= torch.ones(output_size)
+      self.stored_mean = torch.zeros(output_size)
+      self.stored_var = torch.ones(output_size)
     
   def forward(self, x, y=None):
     if self.cross_replica or self.mybn:

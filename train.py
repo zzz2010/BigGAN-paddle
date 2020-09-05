@@ -28,7 +28,6 @@ from sync_batchnorm import patch_replication_callback
 # The main training file. Config is a dictionary specifying the configuration
 # of this training run.
 def run(config):
-
   # Update the config dict as necessary
   # This is for convenience, to add settings derived from the user-specified
   # configuration into the config-dict (e.g. inferring the number of classes
@@ -59,12 +58,6 @@ def run(config):
                        else utils.name_from_config(config))
   print('Experiment name is %s' % experiment_name)
 
-  ##force n_class , resolution to 1000, 128
-  config['actual_n_classes']=config['n_classes']
-
-  config['actual_resolution'] = config['resolution']
-
-
   # Next, build the model
   G = model.Generator(**config).to(device)
   D = model.Discriminator(**config).to(device)
@@ -78,15 +71,7 @@ def run(config):
   else:
     G_ema, ema = None, None
   
-  # FP16?
-  if config['G_fp16']:
-    print('Casting G to float16...')
-    G = G.half()
-    if config['ema']:
-      G_ema = G_ema.half()
-  if config['D_fp16']:
-    print('Casting D to fp16...')
-    D = D.half()
+
     # Consider automatically reducing SN_eps?
   GD = model.G_D(G, D)
   print(G)

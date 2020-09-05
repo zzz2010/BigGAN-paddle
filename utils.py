@@ -637,8 +637,10 @@ class ema(object):
       decay = self.decay
     with torch.no_grad():
       for key in self.source_dict:
-        self.target_dict[key].data.copy_(self.target_dict[key].data * decay 
-                                     + self.source_dict[key].data * (1 - decay))
+        torch.copy(self.target_dict[key] * decay
+                                     + self.source_dict[key] * (1 - decay),self.target_dict[key])
+        # self.target_dict[key].data.copy_(self.target_dict[key].data * decay
+        #                              + self.source_dict[key].data * (1 - decay))
 
 
 # Apply modified ortho reg to a model
@@ -674,7 +676,7 @@ def default_ortho(model, strength=1e-4, blacklist=[]):
 # Convenience utility to switch off requires_grad
 def toggle_grad(model, on_or_off):
   for param in model.parameters():
-    param.requires_grad = on_or_off
+    param.stop_gradient = not on_or_off
 
 
 # Function to join strings or ignore them
@@ -897,10 +899,10 @@ def sample_sheet(G, classes_per_sheet, num_classes, samples_per_class, parallel,
         else:
           o = G(z_[:classes_per_sheet], G.shared(y))
 
-      ims += [o.data.cpu()]
+      ims += [o]
     # This line should properly unroll the images
     out_ims = torch.stack(ims, 1).view(-1, ims[0].shape[1], ims[0].shape[2], 
-                                       ims[0].shape[3]).data.float().cpu()
+                                       ims[0].shape[3])
     # The path for the samples
     image_filename = '%s/%s/%d/samples%d.jpg' % (samples_root, experiment_name, 
                                                  folder_number, i)
@@ -940,9 +942,9 @@ def interp_sheet(G, num_per_sheet, num_midpoints, num_classes, parallel,
     zs = zs.half()
   with torch.no_grad():
     if parallel:
-      out_ims = nn.parallel.data_parallel(G, (zs, ys)).data.cpu()
+      out_ims = nn.DataParallel(G, (zs, ys))
     else:
-      out_ims = G(zs, ys).data.cpu()
+      out_ims = G(zs, ys)
   interp_style = '' + ('Z' if not fix_z else '') + ('Y' if not fix_y else '')
   image_filename = '%s/%s/%d/interp%s%d.jpg' % (samples_root, experiment_name,
                                                 folder_number, interp_style,
@@ -1088,14 +1090,12 @@ def prepare_z_y(G_batch_size, dim_z, nclasses, device='cuda',
                 fp16=False,z_var=1.0):
   z_ = Distribution(torch.randn(G_batch_size, dim_z, requires_grad=False))
   z_.init_distribution('normal', mean=0, var=z_var)
-  z_ = z_
   
   if fp16:
     z_ = z_.half()
 
   y_ = Distribution(torch.zeros(G_batch_size, requires_grad=False))
   y_.init_distribution('categorical',num_categories=nclasses)
-  y_ = y_
   return z_, y_
 
 

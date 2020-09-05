@@ -247,7 +247,7 @@ class Generator(nn.Module):
     for index, blocklist in enumerate(self.blocks):
       # Second inner loop in case block has multiple layers
       for block in blocklist:
-        h = block(h, ys[index])
+        h = block(h, torch.Tensor(ys[index]))
         
     # Apply batchnorm-relu-conv-tanh at output
     return torch.tanh(self.output_layer(h))
@@ -480,6 +480,7 @@ class G_D(nn.Module):
     else:
         self.G.eval()
       # Get Generator output given noise
+
     G_z = self.G(z, self.G.shared(gy))
       # Cast as necessary
 
