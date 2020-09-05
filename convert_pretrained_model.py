@@ -42,14 +42,18 @@ if __name__ == '__main__':
 
             # Next, build the model
             print(torch_fn)
+            out_fn = torch_fn.replace(".pth", ".pdparams")
             if os.path.basename(torch_fn).startswith("G"):
                 G = model.Generator(**config)
                 load_pytorch_pretrain_model(G,torch_state_dict)
-                paddorch.save(G.state_dict(),torch_fn.replace(".pth",".pdparams"))
+
+                print("saved file:",out_fn)
+                paddorch.save(G.state_dict(),out_fn)
             elif   os.path.basename(torch_fn).startswith("D"):
                 D = model.Discriminator(**config)
                 load_pytorch_pretrain_model(D,torch_state_dict)
-                paddorch.save(D.state_dict(),torch_fn.replace(".pth",".pdparams"))
+                paddorch.save(D.state_dict(),out_fn)
+                print("saved file:", out_fn)
             else: ##state_dict
                 pass #not sure w
 

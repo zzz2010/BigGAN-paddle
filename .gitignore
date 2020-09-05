@@ -2,3 +2,5 @@ logs
 *.zip
 best_weigths
 weights
+*.pth
+*.pdparams

@@ -320,8 +320,8 @@ class ccbn(nn.Module):
     elif self.mybn:
       self.bn = myBN(output_size, self.eps, self.momentum)
     elif self.norm_style in ['bn', 'in']:
-      self.stored_mean=torch.zeros(output_size)
-      self.stored_var=torch.ones(output_size)
+      self.stored_mean=torch.nn.Parameter(torch.zeros(output_size))
+      self.stored_var=torch.nn.Parameter(torch.ones(output_size))
     
     
   def forward(self, x, y):
