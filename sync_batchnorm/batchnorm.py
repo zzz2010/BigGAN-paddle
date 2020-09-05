@@ -10,11 +10,11 @@
 
 import collections
 
-import torch
-import torch.nn.functional as F
-
-from torch.nn.modules.batchnorm import _BatchNorm
-from torch.nn.parallel._functions import ReduceAddCoalesced, Broadcast
+import paddorch
+import paddorch.nn.functional as F
+import torch.nn.parallel._functions
+from paddorch.nn.modules.batchnorm import _BatchNorm
+from paddorch.nn.parallel._functions import ReduceAddCoalesced, Broadcast
 
 from .comm import SyncMaster
 

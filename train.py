@@ -35,17 +35,24 @@ def run(config):
   # for the activation specified as a string)
   config['resolution'] = utils.imsize_dict[config['dataset']]
   config['n_classes'] = utils.nclass_dict[config['dataset']]
+
+
+
   config['G_activation'] = utils.activation_dict[config['G_nl']]
   config['D_activation'] = utils.activation_dict[config['D_nl']]
   # By default, skip init if resuming training.
   if config['resume']:
     print('Skipping initialization for training resumption...')
     config['skip_init'] = True
+
+
+
   config = utils.update_config_roots(config)
   device = 'cuda'
   
   # Seed RNG
   utils.seed_rng(config['seed'])
+
 
   # Prepare root folders if necessary
   utils.prepare_root(config)

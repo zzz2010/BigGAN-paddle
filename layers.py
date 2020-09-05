@@ -81,19 +81,23 @@ class SN(object):
     self.register_buffer=dict()
     # Register a singular vector for each sv
     for i in range(self.num_svs):
-      self.register_buffer['u%d' % i]= torch.randn(1, num_outputs)
-      self.register_buffer['sv%d' % i]= torch.ones(1)
+      self.__setattr__('u%d' % i,torch.nn.Parameter(torch.randn(1, num_outputs)))
+      self.__setattr__('sv%d' % i, torch.nn.Parameter(torch.ones(1)))
+      # self.register_buffer['u%d' % i]=
+      # self.register_buffer['sv%d' % i]=  torch.ones(1)
   
   # Singular vectors (u side)
   @property
   def u(self):
-    return [self.register_buffer['u%d' % i]  for i in range(self.num_svs)]
+    return [self.__getattribute__('u%d' % i) for i in range(self.num_svs)]
+    # return [self.register_buffer['u%d' % i]  for i in range(self.num_svs)]
 
   # Singular values; 
   # note that these buffers are just for logging and are not used in training. 
   @property
   def sv(self):
-   return [self.register_buffer['sv%d' % i] for i in range(self.num_svs)]
+    return [self.__getattribute__('sv%d' % i) for i in range(self.num_svs)]
+   # return [self.register_buffer['sv%d' % i] for i in range(self.num_svs)]
    
   # Compute the spectrally-normalized weight
   def W_(self):
@@ -236,9 +240,9 @@ class myBN(nn.Module):
     # Momentum
     self.momentum = momentum
     # Register buffers
-    self.register_buffer['stored_mean']= torch.zeros(num_channels)
-    self.register_buffer['stored_var']=  torch.ones(num_channels)
-    self.register_buffer['accumulation_counter']= torch.zeros(1)
+    self.stored_mean= torch.nn.Parameter(  torch.zeros(num_channels))
+    self.stored_var=  torch.nn.Parameter( torch.ones(num_channels))
+    self.accumulation_counter= torch.nn.Parameter(  torch.zeros(1))
     # Accumulate running means and vars
     self.accumulate_standing = False
     
@@ -354,6 +358,7 @@ class bn(nn.Module):
     self.output_size= output_size
     # Prepare gain and bias layers
     self.gain = torch.nn.Parameter(output_size,1.0)
+    self.stored_mean = torch.nn.Parameter(output_size, 1.0)
     self.bias = torch.nn.Parameter(output_size,0.0)
     # epsilon to avoid dividing by 0
     self.eps = eps
@@ -370,8 +375,8 @@ class bn(nn.Module):
       self.bn = myBN(output_size, self.eps, self.momentum)
      # Register buffers if neither of the above
     else:     
-      self.stored_mean = torch.zeros(output_size)
-      self.stored_var = torch.ones(output_size)
+      self.stored_mean = torch.nn.Parameter(torch.zeros(output_size) )
+      self.stored_var = torch.nn.Parameter(torch.ones(output_size))
     
   def forward(self, x, y=None):
     if self.cross_replica or self.mybn:
