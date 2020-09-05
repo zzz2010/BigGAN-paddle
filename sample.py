@@ -128,7 +128,7 @@ def run(config):
   if config['sample_random']:
     print('Preparing random sample sheet...')
     images, labels = sample()    
-    torchvision.utils.save_image(images.float(),
+    torchvision.utils.save_image(images.astype("float32"),
                                  '%s/%s/random_samples.jpg' % (config['samples_root'], experiment_name),
                                  nrow=int(G_batch_size**0.5),
                                  normalize=True)

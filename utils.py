@@ -915,9 +915,8 @@ def sample_sheet(G, classes_per_sheet, num_classes, samples_per_class, parallel,
 
 # Interp function; expects x0 and x1 to be of shape (shape0, 1, rest_of_shape..)
 def interp(x0, x1, num_midpoints):
-  x0=x0.astype("float32")
-  x1 = x1.astype("float32")
-  lerp = torch.linspace(0, 1.0, num_midpoints + 2)
+
+  lerp = torch.Tensor(torch.linspace(0, 1.0, num_midpoints + 2).astype(x0.numpy().dtype))
   return torch.Tensor((x0 * (1 - lerp.view(1, -1, 1))) + (x1 * lerp.view(1, -1, 1)))
 
 
