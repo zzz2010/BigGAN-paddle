@@ -47,8 +47,7 @@ def run(config):
   # Seed RNG
   utils.seed_rng(config['seed'])
    
-  # Setup cudnn.benchmark for free speed
-  torch.backends.cudnn.benchmark = True
+
   
   # Import the model--this line allows us to dynamically select different files.
   model = __import__(config['model'])
@@ -56,7 +55,7 @@ def run(config):
                        else utils.name_from_config(config))
   print('Experiment name is %s' % experiment_name)
   
-  G = model.Generator(**config).cuda()
+  G = model.Generator(**config)
   utils.count_parameters(G)
   
   # Load weights
@@ -175,5 +174,8 @@ def main():
   print(config)
   run(config)
   
-if __name__ == '__main__':    
-  main()
+if __name__ == '__main__':
+  from paddle import fluid
+  place=fluid.CUDAPlace(0)
+  with fluid.dygraph.guard(place=place):
+    main()

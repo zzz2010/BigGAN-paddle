@@ -80,23 +80,28 @@ class SN(object):
     self.eps = eps
     self.register_buffer=dict()
     # Register a singular vector for each sv
+    self.name="%d_%d_%d"%(num_svs, num_itrs, num_outputs)
     for i in range(self.num_svs):
       self.__setattr__('u%d' % i,torch.nn.Parameter(torch.randn(1, num_outputs)))
       self.__setattr__('sv%d' % i, torch.nn.Parameter(torch.ones(1)))
+
       # self.register_buffer['u%d' % i]=
       # self.register_buffer['sv%d' % i]=  torch.ones(1)
   
   # Singular vectors (u side)
   @property
   def u(self):
-    return [self.__getattribute__('u%d' % i) for i in range(self.num_svs)]
+
+    DD=[self.state_dict()['u%d' % i] for i in range(self.num_svs)]
+
+    return DD
     # return [self.register_buffer['u%d' % i]  for i in range(self.num_svs)]
 
   # Singular values; 
   # note that these buffers are just for logging and are not used in training. 
   @property
   def sv(self):
-    return [self.__getattribute__('sv%d' % i) for i in range(self.num_svs)]
+    return [self.state_dict()['sv%d' % i] for i in range(self.num_svs)]
    # return [self.register_buffer['sv%d' % i] for i in range(self.num_svs)]
    
   # Compute the spectrally-normalized weight
@@ -358,7 +363,6 @@ class bn(nn.Module):
     self.output_size= output_size
     # Prepare gain and bias layers
     self.gain = torch.nn.Parameter(output_size,1.0)
-    self.stored_mean = torch.nn.Parameter(output_size, 1.0)
     self.bias = torch.nn.Parameter(output_size,0.0)
     # epsilon to avoid dividing by 0
     self.eps = eps

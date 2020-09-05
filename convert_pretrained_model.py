@@ -2,6 +2,7 @@ import paddorch
 from paddorch.convert_pretrain_model import load_pytorch_pretrain_model
 from glob import glob
 import utils
+from paddle import fluid
 import os
 
 input_weight_folder="best_weigths/BigGAN_C10_seed0_Gch64_Dch64_bs128_nDs4_Glr2.0e-04_Dlr2.0e-04_Gnlrelu_Dnlrelu_GinitN02_DinitN02_ema"
@@ -37,6 +38,9 @@ if __name__ == '__main__':
         for torch_fn in glob("%s/*pth"%input_weight_folder):
             if "optim" in torch_fn:
                 continue # skip optimizer file
+
+            if "best3" not in torch_fn:
+                continue
             import torch as pytorch
             torch_state_dict= pytorch.load(torch_fn)
 
@@ -49,12 +53,15 @@ if __name__ == '__main__':
 
                 print("saved file:",out_fn)
                 paddorch.save(G.state_dict(),out_fn)
-            elif   os.path.basename(torch_fn).startswith("D"):
-                D = model.Discriminator(**config)
-                load_pytorch_pretrain_model(D,torch_state_dict)
-                paddorch.save(D.state_dict(),out_fn)
-                print("saved file:", out_fn)
-            else: ##state_dict
-                pass #not sure w
-
-
+            # elif   os.path.basename(torch_fn).startswith("D"):
+            #     D = model.Discriminator(**config)
+            #     load_pytorch_pretrain_model(D,torch_state_dict)
+            #     paddorch.save(D.state_dict(),out_fn)
+            #     print("saved file:", out_fn)
+            # else: ##state_dict
+            #     torch_state_dict['D_activation'] =paddorch.nn.ReLU().state_dict()
+            #     torch_state_dict['G_activation'] = paddorch.nn.ReLU().state_dict()
+            #     fluid.dygraph.save_dygraph(torch_state_dict,out_fn)
+            #     os.system("mv %s.pdopt %s"%(out_fn,out_fn))
+            #
+            #

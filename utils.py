@@ -697,18 +697,18 @@ def save_weights(G, D, state_dict, weights_root, experiment_name,
   else:
     print('Saving weights to %s...' % root)
   torch.save(G.state_dict(), 
-              '%s/%s.pth' % (root, join_strings('_', ['G', name_suffix])))
+              '%s/%s' % (root, join_strings('_', ['G', name_suffix])))
   torch.save(G.optim.state_dict(), 
-              '%s/%s.pth' % (root, join_strings('_', ['G_optim', name_suffix])))
+              '%s/%s' % (root, join_strings('_', ['G_optim', name_suffix])))
   torch.save(D.state_dict(), 
-              '%s/%s.pth' % (root, join_strings('_', ['D', name_suffix])))
+              '%s/%s' % (root, join_strings('_', ['D', name_suffix])))
   torch.save(D.optim.state_dict(),
-              '%s/%s.pth' % (root, join_strings('_', ['D_optim', name_suffix])))
+              '%s/%s' % (root, join_strings('_', ['D_optim', name_suffix])))
   torch.save(state_dict,
-              '%s/%s.pth' % (root, join_strings('_', ['state_dict', name_suffix])))
+              '%s/%s' % (root, join_strings('_', ['state_dict', name_suffix])))
   if G_ema is not None:
     torch.save(G_ema.state_dict(), 
-                '%s/%s.pth' % (root, join_strings('_', ['G_ema', name_suffix])))
+                '%s/%s' % (root, join_strings('_', ['G_ema', name_suffix])))
 
 
 # Load a model's weights, optimizer, and the state_dict
@@ -720,25 +720,28 @@ def load_weights(G, D, state_dict, weights_root, experiment_name,
   else:
     print('Loading weights from %s...' % root)
   if G is not None:
-    G.load_state_dict(
-      torch.load('%s/%s.pth' % (root, join_strings('_', ['G', name_suffix]))),
+    G_dict=torch.load('%s/%s' % (root, join_strings('_', ['G', name_suffix])))
+    G.load_state_dict(G_dict,
       strict=strict)
     if load_optim:
       G.optim.load_state_dict(
-        torch.load('%s/%s.pth' % (root, join_strings('_', ['G_optim', name_suffix]))))
+        torch.load('%s/%s' % (root, join_strings('_', ['G_optim', name_suffix]))))
   if D is not None:
     D.load_state_dict(
-      torch.load('%s/%s.pth' % (root, join_strings('_', ['D', name_suffix]))),
+      torch.load('%s/%s' % (root, join_strings('_', ['D', name_suffix]))),
       strict=strict)
     if load_optim:
       D.optim.load_state_dict(
-        torch.load('%s/%s.pth' % (root, join_strings('_', ['D_optim', name_suffix]))))
-  # Load state dict
+        torch.load('%s/%s' % (root, join_strings('_', ['D_optim', name_suffix]))))
+  # Load state dict, ##dont support state dict loading, but it should not affect the result
+  state_dict_fn='%s/%s.pdparams' % (root, join_strings('_', ['state_dict', name_suffix]))
+  from paddle.fluid.dygraph import load_dygraph
+  loaded_dict=load_dygraph(state_dict_fn)[0]
   for item in state_dict:
-    state_dict[item] = torch.load('%s/%s.pth' % (root, join_strings('_', ['state_dict', name_suffix])))[item]
+    state_dict[item] = loaded_dict[item]
   if G_ema is not None:
     G_ema.load_state_dict(
-      torch.load('%s/%s.pth' % (root, join_strings('_', ['G_ema', name_suffix]))),
+      torch.load('%s/%s' % (root, join_strings('_', ['G_ema', name_suffix]))),
       strict=strict)
 
 
@@ -887,7 +890,7 @@ def sample_sheet(G, classes_per_sheet, num_classes, samples_per_class, parallel,
   # loop over total number of sheets
   for i in range(num_classes // classes_per_sheet):
     ims = []
-    y = torch.arange(i * classes_per_sheet, (i + 1) * classes_per_sheet, device='cuda')
+    y = torch.arange(i * classes_per_sheet, (i + 1) * classes_per_sheet ).astype(np.int64)
     for j in range(samples_per_class):
       if (z_ is not None) and hasattr(z_, 'sample_') and classes_per_sheet <= z_.size(0):
         z_.sample_()
@@ -912,8 +915,10 @@ def sample_sheet(G, classes_per_sheet, num_classes, samples_per_class, parallel,
 
 # Interp function; expects x0 and x1 to be of shape (shape0, 1, rest_of_shape..)
 def interp(x0, x1, num_midpoints):
-  lerp = torch.linspace(0, 1.0, num_midpoints + 2, device='cuda').to(x0.dtype)
-  return ((x0 * (1 - lerp.view(1, -1, 1))) + (x1 * lerp.view(1, -1, 1)))
+  x0=x0.astype("float32")
+  x1 = x1.astype("float32")
+  lerp = torch.linspace(0, 1.0, num_midpoints + 2)
+  return torch.Tensor((x0 * (1 - lerp.view(1, -1, 1))) + (x1 * lerp.view(1, -1, 1)))
 
 
 # interp sheet function
@@ -923,11 +928,11 @@ def interp_sheet(G, num_per_sheet, num_midpoints, num_classes, parallel,
                  fix_z=False, fix_y=False, device='cuda'):
   # Prepare zs and ys
   if fix_z: # If fix Z, only sample 1 z per row
-    zs = torch.randn(num_per_sheet, 1, G.dim_z, device=device)
+    zs = torch.randn(num_per_sheet, 1, G.dim_z )
     zs = zs.repeat(1, num_midpoints + 2, 1).view(-1, G.dim_z)
   else:
-    zs = interp(torch.randn(num_per_sheet, 1, G.dim_z, device=device),
-                torch.randn(num_per_sheet, 1, G.dim_z, device=device),
+    zs = interp(torch.randn(num_per_sheet, 1, G.dim_z ),
+                torch.randn(num_per_sheet, 1, G.dim_z ),
                 num_midpoints).view(-1, G.dim_z)
   if fix_y: # If fix y, only sample 1 z per row
     ys = sample_1hot(num_per_sheet, num_classes)
@@ -938,8 +943,7 @@ def interp_sheet(G, num_per_sheet, num_midpoints, num_classes, parallel,
                 G.shared(sample_1hot(num_per_sheet, num_classes)).view(num_per_sheet, 1, -1),
                 num_midpoints).view(num_per_sheet * (num_midpoints + 2), -1)
   # Run the net--note that we've already passed y through G.shared.
-  if G.fp16:
-    zs = zs.half()
+
   with torch.no_grad():
     if parallel:
       out_ims = nn.DataParallel(G, (zs, ys))
@@ -1043,13 +1047,13 @@ def query_gpu(indices):
 # Convenience function to count the number of parameters in a module
 def count_parameters(module):
   print('Number of parameters: {}'.format(
-    sum([p.data.nelement() for p in module.parameters()])))
+    sum([np.prod(p.shape) for p in module.parameters()])))
 
    
 # Convenience function to sample an index, not actually a 1-hot
 def sample_1hot(batch_size, num_classes, device='cuda'):
   return torch.randint(low=0, high=num_classes, size=(batch_size,),
-          device=device, dtype=torch.int64, requires_grad=False)
+            dtype="int64", requires_grad=False)
 
 
 # A highly simplified convenience class for sampling from distributions
