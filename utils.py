@@ -1126,7 +1126,7 @@ def accumulate_standing_stats(net, z, y, nclasses, num_accumulations=16):
 # forwards and backwards passes using fp16 (i.e. fp16 copies of the
 # parameters and fp16 activations).
 #
-# Note that this calls .float().cuda() on the params.
+# Note that this calls .float(). on the params.
 import math
 from torch.optim.optimizer import Optimizer
 class Adam16(Optimizer):

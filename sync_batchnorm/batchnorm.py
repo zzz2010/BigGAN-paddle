@@ -81,7 +81,7 @@ class _SynchronizedBatchNorm(_BatchNorm):
         
         # print('how2')
         # num = sum_size
-        # print('Sum: %f, ssum: %f, sumsize: %f, insum: %f' %(float(sum.sum().cpu()), float(ssum.sum().cpu()), float(sum_size), float(input_sum.sum().cpu()))) 
+        # print('Sum: %f, ssum: %f, sumsize: %f, insum: %f' %(float(sum.sum()), float(ssum.sum()), float(sum_size), float(input_sum.sum())))
         # Fix the graph
         # sum = (sum.detach() - input_sum.detach()) + input_sum
         # ssum = (ssum.detach() - input_ssum.detach()) + input_ssum

@@ -93,8 +93,8 @@ def run(config):
     for i in trange(int(np.ceil(config['sample_num_npz'] / float(G_batch_size)))):
       with torch.no_grad():
         images, labels = sample()
-      x += [np.uint8(255 * (images.cpu().numpy() + 1) / 2.)]
-      y += [labels.cpu().numpy()]
+      x += [np.uint8(255 * (images.numpy() + 1) / 2.)]
+      y += [labels.numpy()]
     x = np.concatenate(x, 0)[:config['sample_num_npz']]
     y = np.concatenate(y, 0)[:config['sample_num_npz']]    
     print('Images shape: %s, Labels shape: %s' % (x.shape, y.shape))

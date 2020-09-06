@@ -59,9 +59,9 @@ def run(config):
     x = x.to(device)
     with torch.no_grad():
       pool_val, logits_val = net(x)
-      pool += [np.asarray(pool_val.cpu())]
-      logits += [np.asarray(F.softmax(logits_val, 1).cpu())]
-      labels += [np.asarray(y.cpu())]
+      pool += [np.asarray(pool_val)]
+      logits += [np.asarray(F.softmax(logits_val, 1))]
+      labels += [np.asarray(y)]
 
   pool, logits, labels = [np.concatenate(item, 0) for item in [pool, logits, labels]]
   # uncomment to save pool, logits, and labels to disk

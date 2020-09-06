@@ -115,8 +115,8 @@ def torch_cov(m, rowvar=False):
     # m = m.type(torch.double)  # uncomment this line if desired
     fact = 1.0 / (m.size(1) - 1)
     m -= torch.mean(m, dim=1, keepdim=True)
-    mt = m.t()  # if complex: mt = m.t().conj()
-    return fact * m.matmul(mt).squeeze()
+    mt = torch.Tensor(m).t()  # if complex: mt = m.t().conj()
+    return fact * torch.Tensor(m).matmul(mt).squeeze()
 
 
 # Pytorch implementation of matrix sqrt, from Tsung-Yu Lin, and Subhransu Maji
@@ -124,18 +124,19 @@ def torch_cov(m, rowvar=False):
 def sqrt_newton_schulz(A, numIters, dtype=None):
   with torch.no_grad():
     if dtype is None:
-      dtype = A.type()
+      dtype = A.dtype
     batchSize = A.shape[0]
     dim = A.shape[1]
     normA = A.mul(A).sum(dim=1).sum(dim=1).sqrt()
-    Y = A.div(normA.view(batchSize, 1, 1).expand_as(A));
-    I = torch.eye(dim,dim).view(1, dim, dim).repeat(batchSize,1,1).type(dtype)
-    Z = torch.eye(dim,dim).view(1, dim, dim).repeat(batchSize,1,1).type(dtype)
+    Y = torch.Tensor(A/(normA.view(batchSize, 1, 1).expand(*A.shape )))
+    I = torch.Tensor(torch.eye(dim,dim).view(1, dim, dim).repeat(batchSize,1,1).astype("float32"))
+    Z = torch.Tensor(torch.eye(dim,dim).view(1, dim, dim).repeat(batchSize,1,1).astype("float32"))
     for i in range(numIters):
-      T = 0.5*(3.0*I - Z.bmm(Y))
+      T = torch.Tensor(0.5*(3.0*I - Z.bmm(Y)))
       Y = Y.bmm(T)
       Z = T.bmm(Z)
-    sA = Y*torch.sqrt(normA).view(batchSize, 1, 1).expand_as(A)
+
+    sA = Y*torch.sqrt(normA).view(batchSize, 1, 1).expand(*A.shape )
   return sA
 
 
@@ -198,6 +199,10 @@ def numpy_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
 
 
 def torch_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
+  mu1= torch.Tensor(mu1.astype("float32"))
+  sigma1 = torch.Tensor(sigma1.astype("float32"))
+  mu2=torch.Tensor(mu2.astype("float32"))
+  sigma2 =torch.Tensor( sigma2.astype("float32"))
   """Pytorch implementation of the Frechet Distance.
   Taken from https://github.com/bioinf-jku/TTUR
   The Frechet distance between two multivariate Gaussians X_1 ~ N(mu_1, C_1)
@@ -224,9 +229,11 @@ def torch_calculate_frechet_distance(mu1, sigma1, mu2, sigma2, eps=1e-6):
     'Training and test covariances have different dimensions'
 
   diff = mu1 - mu2
+
   # Run 50 itrs of newton-schulz to get the matrix sqrt of sigma1 dot sigma2
-  covmean = sqrt_newton_schulz(sigma1.mm(sigma2).unsqueeze(0), 50).squeeze()  
-  out = (diff.dot(diff) +  torch.trace(sigma1) + torch.trace(sigma2)
+  from torch import dot
+  covmean = torch.Tensor(sqrt_newton_schulz(torch.Tensor(sigma1).mm(sigma2).unsqueeze(0), 50)).squeeze()
+  out = (torch.dot(diff,diff) +  torch.trace(sigma1) + torch.trace(sigma2)
          - 2 * torch.trace(covmean))
   return out
 
@@ -261,7 +268,8 @@ def accumulate_inception_activations(sample, net, num_inception_images=50000):
 def load_inception_net(parallel=False):
   inception_model = inception_v3( )
   inception_model.set_dict(torch.load("inception_model.pdparams"))
-  inception_model = WrapInception(inception_model.eval())
+  inception_model.eval()
+  inception_model = WrapInception(inception_model)
 
   if parallel:
     print('Parallelizing Inception module...')
@@ -289,7 +297,7 @@ def prepare_inception_metrics(dataset, parallel, no_fid=False):
     pool, logits, labels = accumulate_inception_activations(sample, net, num_inception_images)
     if prints:  
       print('Calculating Inception Score...')
-    IS_mean, IS_std = calculate_inception_score(logits.cpu().numpy(), num_splits)
+    IS_mean, IS_std = calculate_inception_score(logits.numpy(), num_splits)
     if no_fid:
       FID = 9999.0
     else:
@@ -298,14 +306,14 @@ def prepare_inception_metrics(dataset, parallel, no_fid=False):
       if use_torch:
         mu, sigma = torch.mean(pool, 0), torch_cov(pool, rowvar=False)
       else:
-        mu, sigma = np.mean(pool.cpu().numpy(), axis=0), np.cov(pool.cpu().numpy(), rowvar=False)
+        mu, sigma = np.mean(pool.numpy(), axis=0), np.cov(pool.numpy(), rowvar=False)
       if prints:
         print('Covariances calculated, getting FID...')
       if use_torch:
-        FID = torch_calculate_frechet_distance(mu, sigma, torch.tensor(data_mu).float().cuda(), torch.tensor(data_sigma).float().cuda())
-        FID = float(FID.cpu().numpy())
+        FID = torch_calculate_frechet_distance(mu, sigma, torch.tensor(data_mu) , torch.tensor(data_sigma) )
+        FID = float(FID.numpy())
       else:
-        FID = numpy_calculate_frechet_distance(mu.cpu().numpy(), sigma.cpu().numpy(), data_mu, data_sigma)
+        FID = numpy_calculate_frechet_distance(mu , sigma , data_mu, data_sigma)
     # Delete mu, sigma, pool, logits, and labels, just in case
     del mu, sigma, pool, logits, labels
     return IS_mean, IS_std, FID
