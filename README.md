@@ -10,8 +10,8 @@ This repo is modified based on original BigGAN [pytorch version](https://github.
 ## How To Use This Code
 You will need:
 
-- (PaddlePaddle)[https://github.com/PaddlePaddle/Paddle], version 1.8.4
-- (Paddorch) [https://github.com/zzz2010/paddle_torch]
+- [PaddlePaddle](https://github.com/PaddlePaddle/Paddle), version 1.8.4
+- [Paddorch](https://github.com/zzz2010/paddle_torch)
 - tqdm, numpy, scipy, and h5py
 - The Cifar10 training set
  
