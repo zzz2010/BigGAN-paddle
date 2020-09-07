@@ -167,7 +167,7 @@ class ImageFolder(data.Dataset):
 ''' ILSVRC_HDF5: A dataset to support I/O from an HDF5 to avoid
     having to load individual images all the time. '''
 import h5py as h5
-import torch
+
 class ILSVRC_HDF5(data.Dataset):
   def __init__(self, root, transform=None, target_transform=None,
                load_in_mem=False, train=True,download=False, validate_seed=0,
