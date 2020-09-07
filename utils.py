@@ -724,8 +724,11 @@ def load_weights(G, D, state_dict, weights_root, experiment_name,
     G.load_state_dict(G_dict,
       strict=strict)
     if load_optim:
-      G.optim.load_state_dict(
-        torch.load('%s/%s' % (root, join_strings('_', ['G_optim', name_suffix]))))
+      try:
+        G.optim.load_state_dict(
+          torch.load('%s/%s' % (root, join_strings('_', ['G_optim', name_suffix]))))
+      except:
+        pass ##not very important to load this, not support yet
   if D is not None:
     D.load_state_dict(
       torch.load('%s/%s' % (root, join_strings('_', ['D', name_suffix]))),
