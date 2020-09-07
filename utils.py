@@ -980,7 +980,7 @@ def print_grad_norms(net):
 def get_SVs(net, prefix):
   d = net.state_dict()
   return {('%s_%s' % (prefix, key)).replace('.', '_') :
-            float(d[key].item())
+            float(torch.Tensor(d[key]).item())
             for key in d if 'sv' in key}
 
 
