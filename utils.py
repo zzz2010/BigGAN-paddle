@@ -734,8 +734,11 @@ def load_weights(G, D, state_dict, weights_root, experiment_name,
       torch.load('%s/%s' % (root, join_strings('_', ['D', name_suffix]))),
       strict=strict)
     if load_optim:
-      D.optim.load_state_dict(
-        torch.load('%s/%s' % (root, join_strings('_', ['D_optim', name_suffix]))))
+      try:
+        D.optim.load_state_dict(
+          torch.load('%s/%s' % (root, join_strings('_', ['D_optim', name_suffix]))))
+      except:
+        pass #ignore this loading error
   # Load state dict, ##dont support state dict loading, but it should not affect the result
   state_dict_fn='%s/%s.pdparams' % (root, join_strings('_', ['state_dict', name_suffix]))
   from paddle.fluid.dygraph import load_dygraph
