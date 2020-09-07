@@ -240,6 +240,8 @@ class Generator(nn.Module):
       
     # First linear layer
     h = torch.Tensor(self.linear(z))
+
+
     # Reshape
     h = h.view(h.size(0), -1, self.bottom_width, self.bottom_width)
     
@@ -248,6 +250,7 @@ class Generator(nn.Module):
       # Second inner loop in case block has multiple layers
       for block in blocklist:
         h = block(h, torch.Tensor(ys[index]))
+
         
     # Apply batchnorm-relu-conv-tanh at output
     return torch.tanh(self.output_layer(h))

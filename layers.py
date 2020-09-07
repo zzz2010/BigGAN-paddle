@@ -32,19 +32,23 @@ def power_iteration(W, u_, update=True, eps=1e-12):
   for i, u in enumerate(u_):
     # Run one step of the power iteration
     with torch.no_grad():
-      if (W.shape[0]==u.shape[1])  :
-        v = torch.matmul(u, W)
-      else:
-        v = torch.matmul(u, Wt)
+      if W.shape[1] == 27:
+        a = 1
+      v = torch.matmul(u, W)
+      # if (W.shape[0]==u.shape[1])  :
+      #   v = torch.matmul(u, W)
+      # else:
+      #   v = torch.matmul(u, Wt)
       # Run Gram-Schmidt to subtract components of all other singular vectors
       v = F.normalize(gram_schmidt(v, vs), eps=eps)
       # Add to the list
       vs += [v]
       # Update the other singular vector
-      if (W.shape[0]!=v.shape[1]):
-        u = torch.matmul(v, Wt  )
-      else:
-        u = torch.matmul(v, W)
+      u = torch.matmul(v, Wt)
+      # if (W.shape[0]!=v.shape[1]):
+      #   u = torch.matmul(v, Wt  )
+      # else:
+      #   u = torch.matmul(v, W)
       # Run Gram-Schmidt to subtract components of all other singular vectors
       u = F.normalize(gram_schmidt(u, us), eps=eps)
       # Add to the list
@@ -53,10 +57,11 @@ def power_iteration(W, u_, update=True, eps=1e-12):
         torch.copy(u,u_[i])
         # u_[i][:] = u
     # Compute this singular value and add it to the list
-    if (W.shape[0]!=v.shape[1]):
-      svs += [torch.squeeze(torch.matmul(torch.matmul(v, Wt  ), u.t() ))]
-    else:
-      svs += [torch.squeeze(torch.matmul(torch.matmul(v, W), u.t()))]
+    svs += [torch.squeeze(torch.matmul(torch.matmul(v, Wt), u.t()))]
+    # if (W.shape[0]!=v.shape[1]):
+    #   svs += [torch.squeeze(torch.matmul(torch.matmul(v, Wt  ), u.t() ))]
+    # else:
+    #   svs += [torch.squeeze(torch.matmul(torch.matmul(v, W), u.t()))]
     #svs += [torch.sum(F.linear(u, W.transpose(0, 1)) * v)]
   return svs, us, vs
 
@@ -106,7 +111,10 @@ class SN(object):
    
   # Compute the spectrally-normalized weight
   def W_(self):
-    W_mat = torch.Tensor(self.weight).view(self.weight.shape[0], -1)
+    if isinstance(self,SNLinear):
+      W_mat = torch.Tensor(self.weight).t() ##linear layer weight is different from pytorch weight, need to transpose
+    else:
+      W_mat = torch.Tensor(self.weight).view(self.weight.shape[0], -1)
     if self.transpose:
       W_mat = W_mat.t()
     # Apply num_itrs power iterations
@@ -423,14 +431,21 @@ class GBlock(nn.Module):
 
   def forward(self, x, y):
     h = self.activation(self.bn1(x, y))
+
     if self.upsample:
       h = self.upsample(h)
       x = self.upsample(x)
+
     h = self.conv1(h)
+
     h = self.activation(self.bn2(h, y))
+
     h = self.conv2(h)
+
     if self.learnable_sc:       
       x = self.conv_sc(x)
+
+
     return h + x
     
     
