@@ -76,8 +76,8 @@ if __name__ == '__main__':
                 paddorch.save(D.state_dict(),out_fn)
                 print("saved file:", out_fn)
             else: ##state_dict
-                torch_state_dict['D_activation'] =paddorch.nn.ReLU().state_dict()
-                torch_state_dict['G_activation'] = paddorch.nn.ReLU().state_dict()
+                torch_state_dict['config']['D_activation'] =paddorch.nn.ReLU().state_dict()
+                torch_state_dict['config']['G_activation'] = paddorch.nn.ReLU().state_dict()
                 fluid.dygraph.save_dygraph(torch_state_dict,out_fn)
                 os.system("mv %s.pdopt %s"%(out_fn,out_fn))
 
