@@ -168,7 +168,7 @@ def run(config):
       # For D, which typically doesn't have BN, this shouldn't matter much.
       G.train()
       D.train()
-      x, y=x[0], y.astype(np.int64) ## special handling for paddle dataloader
+      x, y=x, y.astype(np.int64) ## special handling for paddle dataloader
       if config['ema']:
         G_ema.train()
 
