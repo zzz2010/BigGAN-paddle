@@ -118,12 +118,14 @@ def save_and_sample(G, D, G_ema, z_, y_, fixed_z, fixed_y,
   
   # Accumulate standing statistics?
   if config['accumulate_stats']:
+    print("accumulate_stats")
     utils.accumulate_standing_stats(G_ema if config['ema'] and config['use_ema'] else G,
                            z_, y_, config['n_classes'],
                            config['num_standing_accumulations'])
   
   # Save a random sample sheet with fixed z and y      
   with torch.no_grad():
+    print("Save a random sample sheet with fixed z and y  ")
     if config['parallel']:
       fixed_Gz =  nn.parallel.data_parallel(which_G, (fixed_z, which_G.shared(fixed_y)))
     else:

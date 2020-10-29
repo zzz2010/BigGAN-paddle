@@ -685,7 +685,7 @@ def toggle_grad(model, on_or_off):
 def join_strings(base_string, strings):
   return base_string.join([item for item in strings if item])
 
-
+import joblib
 # Save a model's weights, optimizer, and the state_dict
 def save_weights(G, D, state_dict, weights_root, experiment_name, 
                  name_suffix=None, G_ema=None):
@@ -704,8 +704,16 @@ def save_weights(G, D, state_dict, weights_root, experiment_name,
               '%s/%s' % (root, join_strings('_', ['D', name_suffix])))
   torch.save(D.optim.state_dict(),
               '%s/%s' % (root, join_strings('_', ['D_optim', name_suffix])))
-  torch.save(state_dict,
-              '%s/%s' % (root, join_strings('_', ['state_dict', name_suffix])))
+  # print(type(state_dict))
+
+  # print(state_dict)
+  # torch.save(state_dict,
+  #             '%s/%s' % (root, join_strings('_', ['state_dict', name_suffix])))
+  state_dict_tmp=state_dict.copy()
+  state_dict_tmp['config']['G_activation']=None
+  state_dict_tmp['config']['D_activation']=None
+  joblib.dump(state_dict_tmp,
+              '%s/%s.joblib' % (root, join_strings('_', ['state_dict', name_suffix])))
   if G_ema is not None:
     torch.save(G_ema.state_dict(), 
                 '%s/%s' % (root, join_strings('_', ['G_ema', name_suffix])))
@@ -742,9 +750,14 @@ def load_weights(G, D, state_dict, weights_root, experiment_name,
   # Load state dict, ##dont support state dict loading, but it should not affect the result
   state_dict_fn='%s/%s.pdparams' % (root, join_strings('_', ['state_dict', name_suffix]))
   from paddle.fluid.dygraph import load_dygraph
-  loaded_dict=load_dygraph(state_dict_fn)[0]
+  try:
+    loaded_dict=load_dygraph(state_dict_fn)[0]
+  except:
+    loaded_dict=joblib.load(state_dict_fn.replace("pdparams","joblib"))
   for item in state_dict:
     state_dict[item] = loaded_dict[item]
+
+    
   if G_ema is not None:
     G_ema.load_state_dict(
       torch.load('%s/%s' % (root, join_strings('_', ['G_ema', name_suffix]))),
