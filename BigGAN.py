@@ -355,7 +355,7 @@ class Discriminator(nn.Module):
     self.fp16 = D_fp16
     # Architecture
     self.arch = D_arch(self.ch, self.attention)[resolution]
-
+ 
     # Which convs, batchnorms, and linear layers to use
     # No option to turn off SN in D right now
     if self.D_param == 'SN':
@@ -429,6 +429,7 @@ class Discriminator(nn.Module):
           print('Init style not recognized...')
         self.param_count += sum([np.prod(p.shape) for p in module.parameters()])
     print('Param count for D''s initialized parameters: %d' % self.param_count)
+    print('Param mean for D''s initialized parameters: %f' % np.mean([np.mean(p.numpy()) for p in module.parameters()]))
 
   def forward(self, x, y=None):
     # Stick x into h for cleaner for loops without flow control

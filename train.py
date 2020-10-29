@@ -24,7 +24,7 @@ import utils
 import losses
 import train_fns
 from sync_batchnorm import patch_replication_callback
-
+from visualdl import LogWriter
 # The main training file. Config is a dictionary specifying the configuration
 # of this training run.
 def run(config):
@@ -109,8 +109,10 @@ def run(config):
                                             experiment_name)
   train_metrics_fname = '%s/%s' % (config['logs_root'], experiment_name)
   print('Inception Metrics will be saved to {}'.format(test_metrics_fname))
-  test_log = utils.MetricsLogger(test_metrics_fname, 
-                                 reinitialize=(not config['resume']))
+  #test_log = utils.MetricsLogger(test_metrics_fname, 
+  #                               reinitialize=(not config['resume']))
+  test_log=LogWriter(logdir='%s/%s_log' % (config['logs_root'],
+                                            experiment_name))
   print('Training Metrics will be saved to {}'.format(train_metrics_fname))
   train_log = utils.MyLogger(train_metrics_fname, 
                              reinitialize=(not config['resume']),
@@ -174,6 +176,12 @@ def run(config):
 
       metrics = train(x, y)
       train_log.log(itr=int(state_dict['itr']), **metrics)
+
+      for tag in metrics:
+        try:
+          test_log.add_scalar(step=int(state_dict['itr']),tag="train/"+tag,value=float(metrics[tag]))
+        except:
+          pass
 
       # Every sv_log_interval, log singular values
       if (config['sv_log_interval'] > 0) and (not (state_dict['itr'] % config['sv_log_interval'])):

@@ -4,8 +4,8 @@ Functions for the main loop of training different conditional image models
 import paddorch as torch
 import paddorch.nn as nn
 import paddorch.vision as torchvision
-import os
-
+import os,sys
+import numpy as np
 import utils
 import losses
 
@@ -31,24 +31,31 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
       utils.toggle_grad(D, True)
       utils.toggle_grad(G, False)
 
-    D_loss_total=0
+    
     for step_index in range(config['num_D_steps']):
       # If accumulating gradients, loop multiple times before an optimizer step
       D.optim.zero_grad()
+      D_loss_total=0
       for accumulation_index in range(config['num_D_accumulations']):
         z_.sample_()
         y_.sample_()
-        D_fake, D_real = GD(z_[:config['batch_size']], y_[:config['batch_size']], 
-                            x[counter], y[counter], train_G=False, 
-                            split_D=config['split_D'])
-         
-        # Compute components of D's loss, average them, and divide by 
-        # the number of gradient accumulations
-        D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake, D_real)
-        D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
-        D_loss_total+=D_loss
-        counter += 1
-        
+        for ik in range(100000):
+          D_fake, D_real = GD(z_[:config['batch_size']], y_[:config['batch_size']], 
+                              x[counter], y[counter], train_G=False, 
+                              split_D=config['split_D'])
+          
+          # Compute components of D's loss, average them, and divide by 
+          # the number of gradient accumulations
+          D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake, D_real)
+          D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
+          D_loss_total+=D_loss
+          counter += 1
+
+          D_loss.backward()
+          D.optim.minimize(D_loss)
+          D.optim.zero_grad()
+          counter=0
+          print(ik,D_loss.numpy())
       # Optionally apply ortho reg in D
       if config['D_ortho'] > 0.0:
         # Debug print to indicate we're using ortho reg in D.
@@ -175,6 +182,8 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
   IS_mean, IS_std, FID = get_inception_metrics(sample, 
                                                config['num_inception_images'],
                                                num_splits=10)
+  if np.isnan(float(FID)):
+    FID=99
   print('Itr %d: PYTORCH UNOFFICIAL Inception Score is %3.3f +/- %3.3f, PYTORCH UNOFFICIAL FID is %5.4f' % (state_dict['itr'], IS_mean, IS_std, FID))
   # If improved over previous best metric, save approrpiate copy
   if ((config['which_best'] == 'IS' and IS_mean > state_dict['best_IS'])
@@ -183,9 +192,20 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
     utils.save_weights(G, D, state_dict, config['weights_root'],
                        experiment_name, 'best%d' % state_dict['save_best_num'],
                        G_ema if config['ema'] else None)
+    utils.save_weights(G, D, state_dict, config['weights_root'],
+                       experiment_name, 'currentbest',
+                       G_ema if config['ema'] else None)
+    ###early exit when reaching the goal
+    if IS_mean>8.22 and FID<13.7:
+      print("reach goal:IS:%.4f , FID:%.4f"%(IS_mean,FID))
+      sys.exit(0)
     state_dict['save_best_num'] = (state_dict['save_best_num'] + 1 ) % config['num_best_copies']
   state_dict['best_IS'] = max(state_dict['best_IS'], IS_mean)
   state_dict['best_FID'] = min(state_dict['best_FID'], FID)
   # Log results to file
-  test_log.log(itr=int(state_dict['itr']), IS_mean=float(IS_mean),
-               IS_std=float(IS_std), FID=float(FID))
+  #test_log.log(itr=int(state_dict['itr']), IS_mean=float(IS_mean),
+  #             IS_std=float(IS_std), FID=float(FID))
+  test_log.add_scalar(step=int(state_dict['itr']), tag="IS_mean",value=float(IS_mean))
+  test_log.add_scalar(step=int(state_dict['itr']), tag="IS_std",value=float(IS_std))
+  test_log.add_scalar(step=int(state_dict['itr']), tag="FID",value=float(FID))
+        
