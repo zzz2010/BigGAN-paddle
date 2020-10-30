@@ -39,23 +39,19 @@ def GAN_training_function(G, D, GD, z_, y_, ema, state_dict, config):
       for accumulation_index in range(config['num_D_accumulations']):
         z_.sample_()
         y_.sample_()
-        for ik in range(100000):
-          D_fake, D_real = GD(z_[:config['batch_size']], y_[:config['batch_size']], 
-                              x[counter], y[counter], train_G=False, 
-                              split_D=config['split_D'])
-          
-          # Compute components of D's loss, average them, and divide by 
-          # the number of gradient accumulations
-          D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake, D_real)
-          D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
-          D_loss_total+=D_loss
-          counter += 1
+   
+        D_fake, D_real = GD(z_[:config['batch_size']], y_[:config['batch_size']], 
+                            x[counter], y[counter], train_G=True, 
+                            split_D=config['split_D'])
+        
+        # Compute components of D's loss, average them, and divide by 
+        # the number of gradient accumulations
+        D_loss_real, D_loss_fake = losses.discriminator_loss(D_fake, D_real)
+        D_loss = (D_loss_real + D_loss_fake) / float(config['num_D_accumulations'])
+        D_loss_total+=D_loss
+        counter += 1
 
-          D_loss.backward()
-          D.optim.minimize(D_loss)
-          D.optim.zero_grad()
-          counter=0
-          print(ik,D_loss.numpy())
+    
       # Optionally apply ortho reg in D
       if config['D_ortho'] > 0.0:
         # Debug print to indicate we're using ortho reg in D.
