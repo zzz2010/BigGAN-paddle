@@ -212,7 +212,7 @@ class Generator(nn.Module):
     self.param_count = 0
     for module in self.modules():
       if (isinstance(module, nn.Conv2d)
-          or isinstance(module, nn.Conv2d)
+          or isinstance(module, nn.Linear)
           or isinstance(module, nn.Embedding)):
         if self.init == 'ortho':
           init.orthogonal_(module.weight)
