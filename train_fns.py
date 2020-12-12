@@ -192,9 +192,9 @@ def test(G, D, G_ema, z_, y_, state_dict, config, sample, get_inception_metrics,
                        experiment_name, 'currentbest',
                        G_ema if config['ema'] else None)
     ###early exit when reaching the goal
-    if IS_mean>8.22 and FID<13.7:
-      print("reach goal:IS:%.4f , FID:%.4f"%(IS_mean,FID))
-      sys.exit(0)
+    # if IS_mean>8.22 and FID<13.7:
+    #   print("reach goal:IS:%.4f , FID:%.4f"%(IS_mean,FID))
+    #   sys.exit(0)
     state_dict['save_best_num'] = (state_dict['save_best_num'] + 1 ) % config['num_best_copies']
   state_dict['best_IS'] = max(state_dict['best_IS'], IS_mean)
   state_dict['best_FID'] = min(state_dict['best_FID'], FID)

@@ -193,6 +193,10 @@ def run(config):
           print(', '.join(['itr: %d' % state_dict['itr']] 
                            + ['%s : %+4.3f' % (key, metrics[key])
                            for key in metrics]), end=' ')
+      else:
+          pbar.set_description(', '.join(['itr: %d' % state_dict['itr']] 
+                           + ['%s : %+4.3f' % (key, metrics[key])
+                           for key in metrics]))
 
       # Save weights and copies as configured at specified interval
       if not (state_dict['itr'] % config['save_every']):

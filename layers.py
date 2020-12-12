@@ -111,6 +111,7 @@ class SN(object):
    
   # Compute the spectrally-normalized weight
   def W_(self):
+    self.training=True
     if isinstance(self,SNLinear):
       W_mat = torch.Tensor(self.weight).t() ##linear layer weight is different from pytorch weight, need to transpose
     else:
